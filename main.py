@@ -1,0 +1,1 @@
+print('FationLink is runnigs') 
