@@ -3,3 +3,4 @@ ml/*.joblib
 .venv/
 .vrnv/
 __pycache__/
+db.sqlite3
