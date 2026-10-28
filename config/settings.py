@@ -37,17 +37,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'account',
+    'accounts',
 ]
 
-INSTALLED_APPS = [
-    AUTH_USER_MODEL = "account.User"
+
+AUTH_USER_MODEL = "accounts.User"
     
-    
-    
-    
-    
-]
+        
+        
+        
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -106,7 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
-]
+    ]
 
 
 # Internationalization
