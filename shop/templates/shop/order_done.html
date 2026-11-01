@@ -1,0 +1,15 @@
+{% extends "shop/base.html" %}
+{% block title %}سفارش ثبت شد{% endblock %}
+{% block content %}
+<div class="box">
+  <h2>سفارش شماره {{ order.pk }} ثبت شد ✅</h2>
+  <p>نوع سفارش: {% if order.order_type == "wholesale" %}عمده{% else %}تکی{% endif %}</p>
+  <table>
+    {% for i in order.items.all %}
+      <tr><td>{{ i.product.name }}</td><td>{{ i.quantity }}</td><td>{{ i.line_total|floatformat:0 }}</td></tr>
+    {% endfor %}
+  </table>
+  <p class="total">جمع کل: {{ order.total|floatformat:0 }} تومان</p>
+  <a href="{% url 'product_list' %}">ادامه خرید</a>
+</div>
+{% endblock %}

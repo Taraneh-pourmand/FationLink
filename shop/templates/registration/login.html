@@ -1,0 +1,13 @@
+{% extends "shop/base.html" %}
+{% block title %}ورود{% endblock %}
+{% block content %}
+<div class="box">
+  <h2>ورود</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">ورود</button>
+  </form>
+  <p class="muted">حساب نداری؟ <a href="{% url 'signup' %}">ثبت‌نام</a></p>
+</div>
+{% endblock %}

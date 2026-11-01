@@ -1,0 +1,12 @@
+{% extends "shop/base.html" %}
+{% block title %}ثبت‌نام{% endblock %}
+{% block content %}
+<div class="box">
+  <h2>ثبت‌نام</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">ساخت حساب</button>
+  </form>
+</div>
+{% endblock %}
