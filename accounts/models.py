@@ -17,4 +17,4 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
-            return f"{self.username} ({self.getrole_display()})"
+            return f"{self.username} ({self.get_role_display()})"
