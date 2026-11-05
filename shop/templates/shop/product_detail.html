@@ -1,0 +1,42 @@
+{% extends "shop/base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<a href="{% url 'product_list' %}">← بازگشت</a>
+
+<div class="box">
+  <h1>{{ product.name }}</h1>
+  <p class="muted">فروشنده: {{ product.seller|default:"-" }} | موجودی: {{ product.stock }}</p>
+  <p>{{ product.description }}</p>
+  <p>قیمت تکی: <b>{{ product.price|floatformat:0 }}</b> تومان</p>
+</div>
+
+{% if tiers %}
+<div class="box">
+  <h3>قیمت عمده (حداقل {{ product.min_wholesale_qty }} عدد)</h3>
+  <table>
+    <tr><th>از تعداد</th><th>قیمت واحد</th></tr>
+    {% for t in tiers %}
+      <tr><td>{{ t.min_qty }}</td><td>{{ t.unit_price|floatformat:0 }} تومان</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="box">
+  <h3>محاسبه قیمت</h3>
+  <form method="get">
+    <label>تعداد:</label>
+    <input type="number" name="qty" min="1" value="{{ qty }}">
+    <button type="submit">محاسبه</button>
+  </form>
+  <p>نوع خرید: <b>{% if is_wholesale %}عمده{% else %}تکی{% endif %}</b></p>
+  <p>قیمت واحد: {{ unit_price|floatformat:0 }} تومان</p>
+  <p class="total">جمع: {{ total|floatformat:0 }} تومان</p>
+
+  <form method="post" action="{% url 'cart_add' product.pk %}">
+    {% csrf_token %}
+    <input type="number" name="qty" min="1" value="{{ qty }}">
+    <button type="submit">افزودن به سبد</button>
+  </form>
+</div>
+{% endblock %}
