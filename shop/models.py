@@ -108,3 +108,15 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.product} - {self.rating}/5"
+    
+class SupplierLink(models.Model):
+    seller = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                               related_name="suppliers")
+    supplier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                 related_name="clients",
+                                 limit_choices_to={"role__in": ["wholesaler", "manufacturer"]})
+    approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("seller", "supplier")  

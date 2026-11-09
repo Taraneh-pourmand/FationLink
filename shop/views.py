@@ -1,15 +1,5 @@
-from decimal import Decimal
-
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.db import transaction
-from django.db.models import ProtectedError
-from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_POST
-
-from .forms import ProductForm
-from .models import Category, Order, OrderItem, Product, Review
+from django.contrib.auth import get_user_model
+from .models import Category, Order, OrderItem, Product, Review, SupplierLink
 
 
 def product_list(request):
@@ -176,3 +166,55 @@ def review_add(request, pk):
         defaults={"rating": rating, "comment": request.POST.get("comment", "").strip()},
     )
     return redirect("shop:product_detail", pk=pk)
+@login_required
+@require_POST
+def product_delete(request, pk):
+    _seller_required(request.user)
+    product = get_object_or_404(Product, pk=pk, seller=request.user)
+    try:
+        product.delete()
+        messages.success(request, "Product deleted.")
+    except ProtectedError:
+        product.is_active = False
+        product.save(update_fields=["is_active"])
+        messages.info(request, "This product has orders, so it was hidden instead of deleted.")
+    return redirect("shop:seller_products")
+
+
+@login_required
+def seller_orders(request):
+    _seller_required(request.user)
+    items = (
+        OrderItem.objects.filter(product__seller=request.user)
+        .select_related("order", "order__buyer", "product")
+        .order_by("-order__created_at")
+    )
+    return render(request, "shop/seller_orders.html", {"items": items})
+
+
+User = get_user_model()
+SUPPLIER_ROLES = ("wholesaler", "manufacturer")
+
+
+@login_required
+def suppliers(request):
+    role = request.user.role
+    if role == "seller":
+        if request.method == "POST":
+            sup = User.objects.filter(pk=request.POST.get("supplier"), role__in=SUPPLIER_ROLES).first()
+            if sup:
+                SupplierLink.objects.get_or_create(seller=request.user, supplier=sup)
+            return redirect("shop:suppliers")
+        linked = request.user.suppliers.values_list("supplier_id", flat=True)
+        ctx = {
+            "links": request.user.suppliers.select_related("supplier"),
+            "available": User.objects.filter(role__in=SUPPLIER_ROLES).exclude(pk__in=linked),
+        }
+    elif role in SUPPLIER_ROLES:
+        if request.method == "POST":
+            SupplierLink.objects.filter(pk=request.POST.get("link"), supplier=request.user).update(approved=True)
+            return redirect("shop:suppliers")
+        ctx = {"links": request.user.clients.select_related("seller")}
+    else:
+        return redirect("shop:product_list")
+    return render(request, "shop/suppliers.html", ctx)
