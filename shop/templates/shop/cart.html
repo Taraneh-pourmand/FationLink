@@ -1,36 +1,31 @@
 {% extends "shop/base.html" %}
-{% block title %}سبد خرید{% endblock %}
+
+{% block title %}Cart{% endblock %}
+
 {% block content %}
-<div class="box">
-  <h2>سبد خرید</h2>
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
-  {% if items %}
-  <table>
-    <tr><th>محصول</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th><th></th></tr>
-    {% for i in items %}
-    <tr>
-      <td>{{ i.product.name }}{% if i.is_wholesale %} <span class="muted">(عمده)</span>{% endif %}</td>
-      <td>{{ i.qty }}</td>
-      <td>{{ i.unit_price|floatformat:0 }}</td>
-      <td>{{ i.line_total|floatformat:0 }}</td>
-      <td>
-        <form method="post" action="{% url 'cart_remove' i.product.pk %}">
-          {% csrf_token %}<button type="submit">حذف</button>
+<h2>Your cart</h2>
+{% for item in items %}
+    <div class="card">
+        <strong>{{ item.product.name }}</strong>
+        x {{ item.quantity }} = ${{ item.subtotal }}
+        <form method="post" action="{% url 'shop:cart_remove' item.product.pk %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit">Remove</button>
         </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-  <p class="total">جمع کل: {{ total|floatformat:0 }} تومان</p>
-  {% if user.is_authenticated %}
-    <form method="post" action="{% url 'checkout' %}">
-      {% csrf_token %}<button type="submit">ثبت سفارش</button>
-    </form>
-  {% else %}
-    <p>برای ثبت سفارش باید <a href="{% url 'login' %}?next={% url 'cart_detail' %}">وارد شوید</a>.</p>
-  {% endif %}
-  {% else %}
-    <p>سبد خرید خالی است.</p>
-  {% endif %}
-</div>
+    </div>
+{% empty %}
+    <p>Your cart is empty.</p>
+{% endfor %}
+
+{% if items %}
+    <h3>Total: ${{ total }}</h3>
+    {% if user.is_authenticated %}
+        <form method="post" action="{% url 'shop:checkout' %}">
+            {% csrf_token %}
+            <button type="submit">Place order</button>
+        </form>
+    {% else %}
+        <p><a href="{% url 'accounts:login' %}">Log in</a> to place your order.</p>
+    {% endif %}
+{% endif %}
 {% endblock %}

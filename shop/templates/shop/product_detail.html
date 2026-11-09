@@ -1,42 +1,49 @@
 {% extends "shop/base.html" %}
-{% block title %}{{ product.name }}{% endblock %}
-{% block content %}
-<a href="{% url 'product_list' %}">← بازگشت</a>
 
-<div class="box">
-  <h1>{{ product.name }}</h1>
-  <p class="muted">فروشنده: {{ product.seller|default:"-" }} | موجودی: {{ product.stock }}</p>
-  <p>{{ product.description }}</p>
-  <p>قیمت تکی: <b>{{ product.price|floatformat:0 }}</b> تومان</p>
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'shop:product_list' %}">&larr; Back</a>
+
+<div class="card">
+    <h2>{{ product.name }}</h2>
+    <p class="price">${{ product.price }}</p>
+    <p>Seller: {{ product.seller.username }}</p>
+    <p>In stock: {{ product.stock }}</p>
+    <p>{{ product.description }}</p>
+    <form method="post" action="{% url 'shop:cart_add' product.pk %}">
+        {% csrf_token %}
+        <button type="submit">Add to cart</button>
+    </form>
 </div>
 
-{% if tiers %}
-<div class="box">
-  <h3>قیمت عمده (حداقل {{ product.min_wholesale_qty }} عدد)</h3>
-  <table>
-    <tr><th>از تعداد</th><th>قیمت واحد</th></tr>
-    {% for t in tiers %}
-      <tr><td>{{ t.min_qty }}</td><td>{{ t.unit_price|floatformat:0 }} تومان</td></tr>
-    {% endfor %}
-  </table>
+<h3>Reviews</h3>
+
+{% if user.is_authenticated %}
+<div class="card">
+    <form method="post" action="{% url 'shop:review_add' product.pk %}">
+        {% csrf_token %}
+        <label>Rating:
+            <select name="rating">
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+            </select>
+        </label>
+        <p><textarea name="comment" rows="3" style="width:100%" placeholder="Your review"></textarea></p>
+        <button type="submit">Submit review</button>
+    </form>
 </div>
 {% endif %}
 
-<div class="box">
-  <h3>محاسبه قیمت</h3>
-  <form method="get">
-    <label>تعداد:</label>
-    <input type="number" name="qty" min="1" value="{{ qty }}">
-    <button type="submit">محاسبه</button>
-  </form>
-  <p>نوع خرید: <b>{% if is_wholesale %}عمده{% else %}تکی{% endif %}</b></p>
-  <p>قیمت واحد: {{ unit_price|floatformat:0 }} تومان</p>
-  <p class="total">جمع: {{ total|floatformat:0 }} تومان</p>
-
-  <form method="post" action="{% url 'cart_add' product.pk %}">
-    {% csrf_token %}
-    <input type="number" name="qty" min="1" value="{{ qty }}">
-    <button type="submit">افزودن به سبد</button>
-  </form>
-</div>
+{% for r in reviews %}
+    <div class="card">
+        <strong>{{ r.user.username }}</strong> - {{ r.rating }}/5
+        <p>{{ r.comment }}</p>
+    </div>
+{% empty %}
+    <p>No reviews yet.</p>
+{% endfor %}
 {% endblock %}

@@ -1,15 +1,26 @@
 {% extends "shop/base.html" %}
-{% block title %}محصولات{% endblock %}
+
 {% block content %}
-<h1>محصولات</h1>
-{% for p in products %}
-  <div class="box">
-    <h3><a href="{% url 'product_detail' p.pk %}">{{ p.name }}</a></h3>
-    <p class="muted">{{ p.category|default:"بدون دسته" }}</p>
-    <p>قیمت تکی: <b>{{ p.price|floatformat:0 }}</b> تومان</p>
-    <p class="muted">خرید عمده از {{ p.min_wholesale_qty }} عدد</p>
-  </div>
-{% empty %}
-  <p>هنوز محصولی ثبت نشده.</p>
-{% endfor %}
+<h2>Products</h2>
+
+<p class="filters">
+    <a href="{% url 'shop:product_list' %}">All</a>
+    {% for c in categories %}
+        <a href="?category={{ c.id }}">{{ c.name }}</a>
+    {% endfor %}
+</p>
+
+<div class="grid">
+    {% for p in products %}
+        <div class="card">
+            <a href="{% url 'shop:product_detail' p.pk %}">
+                <h3>{{ p.name }}</h3>
+            </a>
+            <p>{{ p.category|default:"No category" }}</p>
+            <p class="price">${{ p.price }}</p>
+        </div>
+    {% empty %}
+        <p>No products yet.</p>
+    {% endfor %}
+</div>
 {% endblock %}

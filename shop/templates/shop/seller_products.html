@@ -1,0 +1,22 @@
+{% extends "shop/base.html" %}
+
+{% block title %}My products{% endblock %}
+
+{% block content %}
+<h2>My products</h2>
+<p><a href="{% url 'shop:product_create' %}">+ Add product</a></p>
+
+{% for p in products %}
+    <div class="card">
+        <strong>{{ p.name }}</strong> - ${{ p.price }} - stock: {{ p.stock }}
+        {% if not p.is_active %}(hidden){% endif %}
+        <a href="{% url 'shop:product_edit' p.pk %}">Edit</a>
+        <form method="post" action="{% url 'shop:product_delete' p.pk %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit">Delete</button>
+        </form>
+    </div>
+{% empty %}
+    <p>You have no products yet.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "shop/base.html" %}
+
+{% block title %}Order #{{ order.pk }}{% endblock %}
+
+{% block content %}
+<h2>Order #{{ order.pk }}</h2>
+<p>Status: {{ order.get_status_display }}</p>
+{% for i in items %}
+    <div class="card">{{ i.product.name }} x {{ i.quantity }} @ ${{ i.unit_price }}</div>
+{% endfor %}
+<h3>Total: ${{ total }}</h3>
+{% endblock %}

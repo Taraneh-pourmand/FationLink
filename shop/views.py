@@ -1,172 +1,178 @@
-from pathlib import Path
-
-import joblib
-import pandas as pd
-from django.conf import settings
-from django.shortcuts import get_object_or_404,  render
 from decimal import Decimal
 
-from django.contrib.auth import get_user_model, login
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import ProtectedError
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-from .models import Order, OrderItem, Product
 
-ML_DIR = Path(settings.BASE_DIR) / "ml"
-yelp_model = joblib.load(ML_DIR / "yelp_model.joblib")
-yelp_vectorizer = joblib.load(ML_DIR / "yelp_vectorizer.joblib")
-fraud_model = joblib.load(ML_DIR / "fraud_model.joblib")
-fraud_data = pd.read_csv(Path(settings.BASE_DIR) / "data" / "fraud" / "creditcard.csv")
+from .forms import ProductForm
+from .models import Category, Order, OrderItem, Product, Review
 
-
-def review(request):
-    result = None
-    text = ""
-    if request.method == "POST":
-        text = request.POST.get("text", "").strip()
-        if text:
-            X = yelp_vectorizer.transform([text])
-            result = yelp_model.predict(X)[0]
-    return render(request, "shop/review.html", {"result": result, "text": text})
-
-
-def fraud(request):
-    result = None
-    if request.method == "POST":
-        row = fraud_data.sample(n=1)
-        actual = int(row["Class"].iloc[0])
-        X = row.drop("Class", axis=1)
-        prob = float(fraud_model.predict_proba(X)[0][1])
-        result = {
-            "amount": round(float(row["Amount"].iloc[0]), 2),
-            "probability": round(prob * 100, 2),
-            "predicted": "Fraud" if prob >= 0.5 else "Normal",
-            "actual": "Fraud" if actual == 1 else "Normal",
-        }
-    return render(request, "shop/fraud.html", {"result": result})
 
 def product_list(request):
     products = Product.objects.filter(is_active=True).select_related("category", "seller")
-    return render(request, "shop/product_list.html", {"products": products})
+    selected = request.GET.get("category")
+    if selected:
+        products = products.filter(category_id=selected)
+    context = {
+        "products": products,
+        "categories": Category.objects.all(),
+        "selected": selected,
+    }
+    return render(request, "shop/product_list.html", context)
 
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk, is_active=True)
-    try:
-        qty = max(1, int(request.GET.get("qty", 1)))
-    except ValueError:
-        qty = 1
-    is_wholesale = qty >= product.min_wholesale_qty
-    unit_price = product.get_unit_price(qty, wholesale=is_wholesale)
-    context = {
-        "product": product,
-        "tiers": product.price_tiers.all(),
-        "qty": qty,
-        "is_wholesale": is_wholesale,
-        "unit_price": unit_price,
-        "total": unit_price * qty,
-    }
-    return render(request, "shop/product_detail.html", context) 
-
-class SignUpForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = get_user_model()
-        fields = ("username",)
+    reviews = product.reviews.select_related("user")
+    return render(request, "shop/product_detail.html", {"product": product, "reviews": reviews})
 
 
-def signup(request):
-    form = SignUpForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        user = form.save()
-        login(request, user)
-        return redirect("product_list")
-    return render(request, "registration/signup.html", {"form": form})
+def _get_cart(request):
+    return request.session.setdefault("cart", {})
 
 
-def _build_cart(request):
-    cart = request.session.get("cart", {})
+def _cart_items(request):
+    cart = _get_cart(request)
+    products = Product.objects.filter(pk__in=cart.keys(), is_active=True)
     items = []
     total = Decimal("0")
-    for pid, qty in cart.items():
-        product = Product.objects.filter(pk=pid, is_active=True).first()
-        if not product:
-            continue
-        is_wholesale = qty >= product.min_wholesale_qty
-        unit_price = product.get_unit_price(qty, wholesale=is_wholesale)
-        line_total = unit_price * qty
-        items.append({
-            "product": product,
-            "qty": qty,
-            "unit_price": unit_price,
-            "line_total": line_total,
-            "is_wholesale": is_wholesale,
-        })
-        total += line_total
+    for p in products:
+        qty = cart[str(p.pk)]
+        subtotal = p.price * qty
+        total += subtotal
+        items.append({"product": p, "quantity": qty, "subtotal": subtotal})
     return items, total
+
+
+def cart_detail(request):
+    items, total = _cart_items(request)
+    return render(request, "shop/cart.html", {"items": items, "total": total})
 
 
 @require_POST
 def cart_add(request, pk):
     product = get_object_or_404(Product, pk=pk, is_active=True)
-    try:
-        qty = max(1, int(request.POST.get("qty", 1)))
-    except ValueError:
-        qty = 1
-    cart = request.session.get("cart", {})
-    new_qty = min(cart.get(str(pk), 0) + qty, product.stock)
-    if new_qty < 1:
-        return redirect("product_detail", pk=pk)
-    cart[str(pk)] = new_qty
-    request.session["cart"] = cart
-    return redirect("cart_detail")
+    if product.stock <= 0:
+        messages.error(request, "This product is out of stock.")
+        return redirect("shop:product_detail", pk=pk)
+    cart = _get_cart(request)
+    key = str(product.pk)
+    cart[key] = min(cart.get(key, 0) + 1, product.stock)
+    request.session.modified = True
+    return redirect("shop:cart")
 
 
 @require_POST
 def cart_remove(request, pk):
-    cart = request.session.get("cart", {})
+    cart = _get_cart(request)
     cart.pop(str(pk), None)
-    request.session["cart"] = cart
-    return redirect("cart_detail")
-
-
-def cart_detail(request):
-    items, total = _build_cart(request)
-    return render(request, "shop/cart.html", {"items": items, "total": total})
+    request.session.modified = True
+    return redirect("shop:cart")
 
 
 @login_required
 @require_POST
 def checkout(request):
-    items, total = _build_cart(request)
+    items, total = _cart_items(request)
     if not items:
-        return redirect("cart_detail")
+        messages.error(request, "Your cart is empty.")
+        return redirect("shop:cart")
     try:
         with transaction.atomic():
-            has_wholesale = any(i["is_wholesale"] for i in items)
-            order = Order.objects.create(
-                buyer=request.user,
-                order_type="wholesale" if has_wholesale else "retail",
-            )
-            for i in items:
-                product = Product.objects.select_for_update().get(pk=i["product"].pk)
-                if product.stock < i["qty"]:
-                    raise ValueError(f"موجودی «{product.name}» کافی نیست.")
-                product.stock -= i["qty"]
-                product.save(update_fields=["stock"])
+            order = Order.objects.create(buyer=request.user)
+            for item in items:
+                product = Product.objects.select_for_update().get(pk=item["product"].pk)
+                if product.stock < item["quantity"]:
+                    raise ValueError(f"Not enough stock for {product.name}.")
                 OrderItem.objects.create(
                     order=order,
                     product=product,
-                    quantity=i["qty"],
-                    unit_price=i["unit_price"],
+                    quantity=item["quantity"],
+                    unit_price=product.price,
                 )
+                product.stock -= item["quantity"]
+                product.save(update_fields=["stock"])
     except ValueError as e:
-        return render(request, "shop/cart.html", {"items": items, "total": total, "error": str(e)})
+        messages.error(request, str(e))
+        return redirect("shop:cart")
     request.session["cart"] = {}
-    return redirect("order_done", pk=order.pk)
+    return redirect("shop:order_detail", pk=order.pk)
 
 
 @login_required
-def order_done(request, pk):
+def order_list(request):
+    orders = request.user.orders.order_by("-created_at")
+    return render(request, "shop/order_list.html", {"orders": orders})
+
+
+@login_required
+def order_detail(request, pk):
     order = get_object_or_404(Order, pk=pk, buyer=request.user)
-    return render(request, "shop/order_done.html", {"order": order})
+    items = order.items.select_related("product")
+    total = sum(i.quantity * i.unit_price for i in items)
+    return render(request, "shop/order_detail.html", {"order": order, "items": items, "total": total})
+
+
+SELLER_ROLES = ("seller", "wholesaler", "manufacturer")
+
+
+def _seller_required(user):
+    if user.role not in SELLER_ROLES:
+        raise PermissionDenied
+
+
+@login_required
+def seller_products(request):
+    _seller_required(request.user)
+    products = request.user.products.order_by("-created_at")
+    return render(request, "shop/seller_products.html", {"products": products})
+
+
+@login_required
+def product_create(request):
+    _seller_required(request.user)
+    form = ProductForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        product = form.save(commit=False)
+        product.seller = request.user
+        product.save()
+        return redirect("shop:seller_products")
+    return render(request, "shop/product_form.html", {"form": form, "title": "Add product"})
+
+
+@login_required
+def product_edit(request, pk):
+    _seller_required(request.user)
+    product = get_object_or_404(Product, pk=pk, seller=request.user)
+    form = ProductForm(request.POST or None, instance=product)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("shop:seller_products")
+    return render(request, "shop/product_form.html", {"form": form, "title": "Edit product"})
+
+
+@login_required
+@require_POST
+def review_add(request, pk):
+    product = get_object_or_404(Product, pk=pk, is_active=True)
+    has_bought = OrderItem.objects.filter(order__buyer=request.user, product=product).exists()
+    if not has_bought:
+        messages.error(request, "Only buyers of this product can review it.")
+        return redirect("shop:product_detail", pk=pk)
+    try:
+        rating = int(request.POST.get("rating", 0))
+    except ValueError:
+        rating = 0
+    if not 1 <= rating <= 5:
+        messages.error(request, "Please choose a rating between 1 and 5.")
+        return redirect("shop:product_detail", pk=pk)
+    Review.objects.update_or_create(
+        product=product,
+        user=request.user,
+        defaults={"rating": rating, "comment": request.POST.get("comment", "").strip()},
+    )
+    return redirect("shop:product_detail", pk=pk)

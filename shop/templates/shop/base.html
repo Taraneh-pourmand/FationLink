@@ -1,41 +1,46 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}FationLink{% endblock %}</title>
-  <style>
-    body { font-family: Tahoma, sans-serif; margin: 0; background: #f6f6f6; }
-    nav { background: #222; padding: 12px 16px; display: flex; gap: 16px; align-items: center; }
-    nav a, nav span { color: #fff; text-decoration: none; }
-    nav button { padding: 4px 10px; }
-    .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
-    .box { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-    table { width: 100%; border-collapse: collapse; }
-    td, th { padding: 8px; border-bottom: 1px solid #eee; text-align: right; }
-    input { padding: 8px; }
-    button { padding: 8px 16px; cursor: pointer; }
-    .muted { color: #777; font-size: 13px; }
-    .error { color: #c00; }
-    .total { font-size: 20px; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}FationLink{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
+        header { background: #222; color: #fff; padding: 16px 24px; }
+        header a { color: #fff; text-decoration: none; margin-left: 12px; }
+        header .brand { font-size: 20px; margin-left: 0; }
+        main { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+        .filters a { margin-right: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .card { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+        .card a { text-decoration: none; color: #222; }
+        .price { font-weight: bold; color: #0a7; }
+    </style>
 </head>
 <body>
-<nav>
-  <a href="{% url 'product_list' %}">محصولات</a>
-  <a href="{% url 'cart_detail' %}">سبد خرید</a>
-  {% if user.is_authenticated %}
-    <span>{{ user.username }}</span>
-    <form method="post" action="{% url 'logout' %}" style="display:inline">
-      {% csrf_token %}<button type="submit">خروج</button>
-    </form>
-  {% else %}
-    <a href="{% url 'login' %}">ورود</a>
-    <a href="{% url 'signup' %}">ثبت‌نام</a>
-  {% endif %}
-</nav>
-<div class="wrap">
-  {% block content %}{% endblock %}
-</div>
+    <header>
+        <a class="brand" href="{% url 'shop:product_list' %}">FationLink</a>
+        <span style="float:right">
+            <a href="{% url 'shop:cart' %}">Cart</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'shop:order_list' %}">Orders</a>
+                {% if user.role != 'customer' %}
+                    <a href="{% url 'shop:seller_products' %}">My products</a>
+                {% endif %}
+                {{ user.username }} ({{ user.get_role_display }})
+                <form method="post" action="{% url 'accounts:logout' %}" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'accounts:login' %}">Login</a>
+                <a href="{% url 'accounts:register' %}">Register</a>
+            {% endif %}
+        </span>
+    </header>
+    <main>
+        {% for m in messages %}<p style="color:#b00">{{ m }}</p>{% endfor %}
+        {% block content %}{% endblock %}
+    </main>
 </body>
 </html>
