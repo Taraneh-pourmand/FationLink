@@ -37,10 +37,14 @@
     </form>
 </div>
 {% endif %}
+{% if pos_percent is not None %}<p>{{ pos_percent }}٪ نظرات مثبت</p>{% endif %}
 
 {% for r in reviews %}
     <div class="card">
         <strong>{{ r.user.username }}</strong> - {{ r.rating }}/5
+{% if r.sentiment == 'positive' %}<span class="badge bg-success">مثبت</span>
+{% elif r.sentiment == 'negative' %}<span class="badge bg-danger">منفی</span>{% endif %}
+
         <p>{{ r.comment }}</p>
     </div>
 {% empty %}

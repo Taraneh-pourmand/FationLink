@@ -108,7 +108,7 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.product} - {self.rating}/5"
-    
+
 class SupplierLink(models.Model):
     seller = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                                related_name="suppliers")
@@ -119,4 +119,4 @@ class SupplierLink(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("seller", "supplier")  
+        unique_together = ("seller", "supplier")

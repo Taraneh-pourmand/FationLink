@@ -1,5 +1,17 @@
+from decimal import Decimal
+from .sentiment import predict_sentiment
+from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.db.models import ProtectedError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from .forms import ProductForm
 from .models import Category, Order, OrderItem, Product, Review, SupplierLink
+
 
 
 def product_list(request):
@@ -17,8 +29,18 @@ def product_list(request):
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk, is_active=True)
-    reviews = product.reviews.select_related("user")
-    return render(request, "shop/product_detail.html", {"product": product, "reviews": reviews})
+    reviews = list(product.reviews.select_related("user"))
+    pos = 0
+    for r in reviews:
+        r.sentiment = predict_sentiment(r.comment)
+        if r.sentiment == "positive":
+            pos += 1
+    pos_percent = round(100 * pos / len(reviews)) if reviews else None
+    return render(
+        request,
+        "shop/product_detail.html",
+        {"product": product, "reviews": reviews, "pos_percent": pos_percent},
+    )
 
 
 def _get_cart(request):

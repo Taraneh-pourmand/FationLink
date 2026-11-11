@@ -1,0 +1,25 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+<h4>تأمین‌کنندگان</h4>
+{% if user.role == 'seller' %}
+<form method="post">{% csrf_token %}
+  <select name="supplier">
+    {% for s in available %}<option value="{{ s.pk }}">{{ s.username }}</option>{% endfor %}
+  </select>
+  <button>درخواست</button>
+</form>
+{% endif %}
+<ul>
+{% for l in links %}
+  <li>
+    {% if user.role == 'seller' %}{{ l.supplier.username }}{% else %}{{ l.seller.username }}{% endif %}
+    {% if l.approved %}✔ تأیید شده
+    {% elif user.role != 'seller' %}
+      <form method="post" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="link" value="{{ l.pk }}"><button>تأیید</button>
+      </form>
+    {% else %}در انتظار{% endif %}
+  </li>
+{% empty %}<li>موردی نیست.</li>{% endfor %}
+</ul>
+{% endblock %}
