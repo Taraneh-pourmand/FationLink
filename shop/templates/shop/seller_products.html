@@ -10,6 +10,7 @@
     <div class="card">
         <strong>{{ p.name }}</strong> - ${{ p.price }} - stock: {{ p.stock }}
         {% if not p.is_active %}(hidden){% endif %}
+        <br>{% if p.forecast is not None %}پیش‌بینی هفته‌ی بعد: {{ p.forecast }}{% else %}داده کافی نیست{% endif %}
         <a href="{% url 'shop:product_edit' p.pk %}">Edit</a>
         <form method="post" action="{% url 'shop:product_delete' p.pk %}" style="display:inline">
             {% csrf_token %}

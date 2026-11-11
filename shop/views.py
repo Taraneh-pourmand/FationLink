@@ -11,8 +11,9 @@ from django.views.decorators.http import require_POST
 
 from .forms import ProductForm
 from .models import Category, Order, OrderItem, Product, Review, SupplierLink
-
-
+from .demand import forecast_next_week
+from django.contrib.auth.decorators import user_passes_test
+from .fraud import fraud_orders
 
 def product_list(request):
     products = Product.objects.filter(is_active=True).select_related("category", "seller")
@@ -140,7 +141,9 @@ def _seller_required(user):
 @login_required
 def seller_products(request):
     _seller_required(request.user)
-    products = request.user.products.order_by("-created_at")
+    products = list(request.user.products.order_by("-created_at"))
+    for p in products:
+        p.forecast = forecast_next_week(p)
     return render(request, "shop/seller_products.html", {"products": products})
 
 
@@ -240,3 +243,7 @@ def suppliers(request):
     else:
         return redirect("shop:product_list")
     return render(request, "shop/suppliers.html", ctx)
+
+@user_passes_test(lambda u: u.is_staff)
+def fraud_page(request):
+    return render(request, "shop/fraud.html", {"orders": fraud_orders()})

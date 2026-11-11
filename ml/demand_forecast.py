@@ -34,7 +34,8 @@ y_test = y.iloc[-20:]
 model = RandomForestRegressor(random_state=42)
 
 model.fit(X_train, y_train)
-
+import joblib
+joblib.dump(model, "ml/demand_model.joblib")
 pred = model.predict(X_test)
 
 
