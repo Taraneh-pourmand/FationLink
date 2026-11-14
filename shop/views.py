@@ -247,3 +247,4 @@ def suppliers(request):
 @user_passes_test(lambda u: u.is_staff)
 def fraud_page(request):
     return render(request, "shop/fraud.html", {"orders": fraud_orders()})
+ 
