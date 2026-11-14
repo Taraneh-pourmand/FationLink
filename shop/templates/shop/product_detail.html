@@ -3,18 +3,27 @@
 {% block title %}{{ product.name }}{% endblock %}
 
 {% block content %}
-<a href="{% url 'shop:product_list' %}">&larr; Back</a>
+<a href="{% url 'shop:product_list' %}" class="text-decoration-none">&larr; Back</a>
 
-<div class="card">
-    <h2>{{ product.name }}</h2>
-    <p class="price">${{ product.price }}</p>
-    <p>Seller: {{ product.seller.username }}</p>
-    <p>In stock: {{ product.stock }}</p>
-    <p>{{ product.description }}</p>
-    <form method="post" action="{% url 'shop:cart_add' product.pk %}">
-        {% csrf_token %}
-        <button type="submit">Add to cart</button>
-    </form>
+<div class="row g-4 mt-1 mb-5">
+    <div class="col-md-6">
+        {% if product.image %}
+            <img src="{{ product.image.url }}" class="img-fluid rounded-4 w-100" alt="{{ product.name }}">
+        {% else %}
+            <div class="product-ph rounded-4" style="height:420px">{{ product.name|first|upper }}</div>
+        {% endif %}
+    </div>
+    <div class="col-md-6">
+        <span class="badge text-bg-light mb-2">{{ product.category|default:"No category" }}</span>
+        <h1>{{ product.name }}</h1>
+        <p class="price fs-3">${{ product.price }}</p>
+        <p class="text-muted">{{ product.description }}</p>
+        <p>Seller: {{ product.seller.username }} &middot; In stock: {{ product.stock }}</p>
+        <form method="post" action="{% url 'shop:cart_add' product.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-dark btn-lg">Add to cart</button>
+        </form>
+    </div>
 </div>
 
 <h3>Reviews</h3>
@@ -32,20 +41,16 @@
                 <option value="1">1</option>
             </select>
         </label>
-        <p><textarea name="comment" rows="3" style="width:100%" placeholder="Your review"></textarea></p>
+        <p><textarea name="comment" rows="3" placeholder="Your review"></textarea></p>
         <button type="submit">Submit review</button>
     </form>
 </div>
 {% endif %}
-{% if pos_percent is not None %}<p>{{ pos_percent }}٪ نظرات مثبت</p>{% endif %}
 
 {% for r in reviews %}
     <div class="card">
         <strong>{{ r.user.username }}</strong> - {{ r.rating }}/5
-{% if r.sentiment == 'positive' %}<span class="badge bg-success">مثبت</span>
-{% elif r.sentiment == 'negative' %}<span class="badge bg-danger">منفی</span>{% endif %}
-
-        <p>{{ r.comment }}</p>
+        <p class="mb-0">{{ r.comment }}</p>
     </div>
 {% empty %}
     <p>No reviews yet.</p>

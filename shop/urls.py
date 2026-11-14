@@ -1,4 +1,6 @@
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 
 from . import views
 
@@ -22,3 +24,4 @@ urlpatterns = [
     path("seller/products/<int:pk>/delete/", views.product_delete, name="product_delete"),
      path("fraud/", views.fraud_page, name="fraud"),
 ]
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

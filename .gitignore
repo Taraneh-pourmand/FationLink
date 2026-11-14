@@ -4,3 +4,4 @@ ml/*.joblib
 .vrnv/
 __pycache__/
 db.sqlite3
+media/

@@ -1,24 +1,38 @@
 {% extends "shop/base.html" %}
 
 {% block content %}
-<h2>Products</h2>
+<div class="hero mb-4">
+    <h1 class="display-5 fw-bold">Wear the season</h1>
+    <p class="lead mb-0">Fresh styles from sellers, wholesalers and manufacturers.</p>
+</div>
 
-<p class="filters">
-    <a href="{% url 'shop:product_list' %}">All</a>
+<div class="mb-4">
+    <a class="btn btn-sm btn-dark me-1" href="{% url 'shop:product_list' %}">All</a>
     {% for c in categories %}
-        <a href="?category={{ c.id }}">{{ c.name }}</a>
+        <a class="btn btn-sm btn-outline-dark me-1" href="?category={{ c.id }}">{{ c.name }}</a>
     {% endfor %}
-</p>
+</div>
 
-<div class="grid">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
     {% for p in products %}
-        <div class="card">
+    <div class="col">
+        <div class="card product-card h-100 shadow-sm">
             <a href="{% url 'shop:product_detail' p.pk %}">
-                <h3>{{ p.name }}</h3>
+                {% if p.image %}
+                    <img src="{{ p.image.url }}" class="product-img" alt="{{ p.name }}">
+                {% else %}
+                    <div class="product-ph">{{ p.name|first|upper }}</div>
+                {% endif %}
             </a>
-            <p>{{ p.category|default:"No category" }}</p>
-            <p class="price">${{ p.price }}</p>
+            <div class="card-body">
+                <small class="text-muted">{{ p.category|default:"" }}</small>
+                <h5 class="card-title mt-1">
+                    <a class="text-dark" href="{% url 'shop:product_detail' p.pk %}">{{ p.name }}</a>
+                </h5>
+                <p class="price fs-5 mb-0">${{ p.price }}</p>
+            </div>
         </div>
+    </div>
     {% empty %}
         <p>No products yet.</p>
     {% endfor %}

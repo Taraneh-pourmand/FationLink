@@ -120,3 +120,4 @@ class SupplierLink(models.Model):
 
     class Meta:
         unique_together = ("seller", "supplier")
+    image = models.ImageField(upload_to="products/", blank=True)   
