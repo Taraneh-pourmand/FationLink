@@ -61,6 +61,7 @@ FationLink/
 - `ml/yelp_train.py` trains a text model on review data; the vectorizer is saved as `yelp_vectorizer.joblib`
 - `shop/fraud.py`, `shop/demand.py` and `shop/sentiment.py` contain the fraud-detection, demand-forecasting and review-sentiment logic
 - `download_*.py` scripts in the project root download the datasets for demand, fraud, retail and reviews
+- Datasets and trained models are not stored in the repository. Run the `download_*.py` scripts to fetch the data.
 
 ## Notes
 
