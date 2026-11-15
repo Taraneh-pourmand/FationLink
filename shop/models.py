@@ -26,6 +26,7 @@ class Product(models.Model):
     )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    image = models.ImageField(upload_to="products/", blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -35,7 +36,7 @@ class Product(models.Model):
     def get_unit_price(self, qty, wholesale=False):
         if not wholesale:
             return self.price
-        tier = self.price_tires.filter(min_qty__lte=qty).order_by("-min_qty").first()
+        tier = self.price_tiers.filter(min_qty__lte=qty).order_by("-min_qty").first()
         return tier.unit_price if tier else self.price
         
     def __str__(self):
@@ -120,4 +121,3 @@ class SupplierLink(models.Model):
 
     class Meta:
         unique_together = ("seller", "supplier")
-    image = models.ImageField(upload_to="products/", blank=True)   
