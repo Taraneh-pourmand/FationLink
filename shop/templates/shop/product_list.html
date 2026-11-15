@@ -1,10 +1,8 @@
 {% extends "shop/base.html" %}
+{% load static %}
 
 {% block content %}
-<div class="hero mb-4">
-    <h1 class="display-5 fw-bold">Wear the season</h1>
-    <p class="lead mb-0">Fresh styles from sellers, wholesalers and manufacturers.</p>
-</div>
+<div class="mb-4" style="min-height:420px; border-radius:1rem; background-size:cover; background-position:center; background-image:url('{% static 'shop/img/hero.jpg' %}');"></div>
 
 <div class="mb-4">
     <a class="btn btn-sm btn-dark me-1" href="{% url 'shop:product_list' %}">All</a>
